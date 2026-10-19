@@ -1,3 +1,6 @@
+import { promises as fs } from 'node:fs';
+import path from 'node:path';
+
 const defs = [];
 const PNG = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAusB9Y9ZQmcAAAAASUVORK5CYII=';
 const calls = [];
@@ -26,12 +29,15 @@ const ctx = {
   get(service) { return service === 'attachments' ? attachments : undefined; },
 };
 const ref = (value) => ({ get: () => value });
+const outputDir = path.join(process.cwd(), 'test-output');
+await fs.rm(outputDir, { recursive: true, force: true });
 const config = {
   baseURL: ref('https://relay.example/v1'),
   apiKey: ref('direct-key'),
   model: ref('test-image-model'),
   size: ref('1024x1024'),
   timeoutMs: ref(180000),
+  outputDir: ref(outputDir),
 };
 
 const module = await import('../index.js');
@@ -43,8 +49,12 @@ console.log('output', output);
 if (calls[0]?.url !== 'https://relay.example/v1/images/generations') throw new Error('wrong endpoint');
 if (calls[0]?.authorization !== 'Bearer direct-key') throw new Error('direct key missing');
 if (output.image?.attachmentId !== 'att_test') throw new Error('image ref missing');
+if (output.savedPath === undefined) throw new Error('saved copy missing');
+const saved = await fs.readFile(output.savedPath);
+if (saved.length !== Buffer.from(PNG, 'base64').length) throw new Error('saved copy has wrong bytes');
 const blocks = tool.output.render({}, output);
 if (!blocks.some((block) => block.type === 'image')) throw new Error('image block missing');
+await fs.rm(outputDir, { recursive: true, force: true });
 
 config.apiKey = ref('');
 let failed = false;

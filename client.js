@@ -19,6 +19,8 @@ window.__ModuleLoader__.load({
       sizeHint: 'Used when the model does not pass a size argument.',
       timeoutMs: 'Timeout (ms)',
       timeoutHint: 'Maximum wait for one generation. Image models often need 30-120 seconds.',
+      outputDir: 'Save a copy to',
+      outputDirHint: 'Optional. Empty keeps only the attachment store. A relative path follows the current workspace; an absolute path is used as-is.',
       save: 'Save',
       saving: 'Saving…',
       saved: 'Saved.',
@@ -45,6 +47,8 @@ window.__ModuleLoader__.load({
       sizeHint: '模型调用时未指定 size 就用这个值。',
       timeoutMs: '超时（毫秒）',
       timeoutHint: '单次生成最长等待时间。生图通常需要 30-120 秒。',
+      outputDir: '另存目录（可选）',
+      outputDirHint: '留空只存附件库；相对路径基于当前工作区，也可以填绝对路径。',
       save: '保存',
       saving: '保存中…',
       saved: '已保存。',
@@ -127,6 +131,7 @@ window.__ModuleLoader__.load({
         model: value.model ?? '',
         size: value.size ?? '1024x1024',
         timeoutMs: Number(value.timeoutMs ?? 180000),
+        outputDir: value.outputDir ?? '',
       };
       const writable = snapshot.writable !== false;
 
@@ -145,7 +150,8 @@ window.__ModuleLoader__.load({
         || draft.apiKey !== base.apiKey
         || draft.model !== base.model
         || draft.size !== base.size
-        || draft.timeoutMs !== base.timeoutMs;
+        || draft.timeoutMs !== base.timeoutMs
+        || draft.outputDir !== base.outputDir;
 
       const edit = (key, next) => {
         setDraft((previous) => ({ ...previous, [key]: next }));
@@ -173,6 +179,7 @@ window.__ModuleLoader__.load({
             { op: 'set', path: ['model'], value: draft.model.trim() },
             { op: 'set', path: ['size'], value: draft.size },
             { op: 'set', path: ['timeoutMs'], value: Math.round(draft.timeoutMs) },
+            { op: 'set', path: ['outputDir'], value: draft.outputDir.trim() },
           ], snapshot.revision);
         } catch (cause) {
           failure = cause instanceof Error ? cause.message : String(cause);
@@ -258,6 +265,17 @@ window.__ModuleLoader__.load({
             value: draft.timeoutMs,
             disabled,
             onChange: (event) => edit('timeoutMs', Number(event.target.value)),
+            style: inputStyle(disabled),
+          }),
+        ),
+        h(Field, { label: t('outputDir'), hint: t('outputDirHint') },
+          h('input', {
+            type: 'text',
+            value: draft.outputDir,
+            disabled,
+            spellCheck: false,
+            placeholder: 'images/generated',
+            onChange: (event) => edit('outputDir', event.target.value),
             style: inputStyle(disabled),
           }),
         ),

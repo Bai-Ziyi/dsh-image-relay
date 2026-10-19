@@ -27,8 +27,11 @@ dsh plugin --profile desktop add github:Bai-Ziyi/dsh-image-relay
 | 模型 | 空 | 中转站要求的图片模型 id。 |
 | 默认尺寸 | `1024x1024` | 模型未指定 `size` 时使用。 |
 | 超时 | `180000` | 单次生成最长等待毫秒数。 |
+| 另存目录 | 空 | 可选。留空只存附件库；相对路径基于当前工作区，也可以填绝对路径。 |
 
 **API Key 会以明文保存在 profile 的 `cordis.patch.yml` 里。** 请使用只在中转站生效、可随时吊销的 key；不要填主账号的长期密钥。插件只把 key 放在发往你配置的 Base URL 的 `Authorization` 请求头里。
+
+填了“另存目录”后，插件会在该目录再写一份可编辑的图片文件（带 `.png` / `.jpg` 等扩展名），并在工具结果里返回绝对路径。这份副本使用 Host 权限写入，请填你信任的目录；留空则仍然只保存到 DSH 附件库。
 
 ## 使用
 
@@ -49,13 +52,14 @@ dsh plugin --profile desktop add github:Bai-Ziyi/dsh-image-relay
 1. 工具向 `POST {Base URL}/images/generations` 发送 JSON：`{ model, prompt, size }`。
 2. 支持中转站返回 `b64_json` 或 `url` 两种结果；URL 会被下载。
 3. 图片通过 DSH 的 attachment 服务持久化，因此可以回看，也可以被支持图片输入的模型继续查看。
-4. 请求使用 Host 的全局 `fetch`，所以已经配置的 DSH 出站代理会自动生效。
+4. 配置了“另存目录”时，再写一份带扩展名的副本到该目录，并返回绝对路径。
+5. 请求使用 Host 的全局 `fetch`，所以已经配置的 DSH 出站代理会自动生效。
 
 ## 不做什么
 
 - 只支持 OpenAI 兼容的 `/images/generations`；不包含图生图、编辑、`n>1`、`quality` 等参数。
 - 不会自动生成图片；只有模型判断需要并调用工具时才会发请求。
-- 不保存除图片附件之外的任何内容。
+- 默认只保存附件；只有配置了“另存目录”才会额外写一份副本。
 
 ## 兼容性
 

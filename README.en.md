@@ -27,8 +27,11 @@ Restart DSH once, then open **Plugins → Installed → Image Relay → Configur
 | Model | empty | Image model id required by the relay. |
 | Default size | `1024x1024` | Used when the model does not pass `size`. |
 | Timeout | `180000` | Maximum wait for one generation, in milliseconds. |
+| Save a copy to | empty | Optional. Empty keeps only the attachment store; a relative path follows the current workspace, an absolute path is used as-is. |
 
 **The API key is stored in the profile's `cordis.patch.yml` in plain text.** Use a key scoped to this relay that you can rotate or revoke; do not paste a long-lived master key. The plugin only sends it in the `Authorization` header of requests to the Base URL you configured.
+
+When a save directory is configured, the plugin also writes an editable image file there (with a `.png` / `.jpg` extension) and returns its absolute path. That copy is written with the Host's permissions, so point it at a directory you trust; leave it empty to keep only the attachment store copy.
 
 ## Usage
 
@@ -49,13 +52,14 @@ The generated image is attached to the conversation; when the relay returns a UR
 1. The tool sends `POST {Base URL}/images/generations` with `{ model, prompt, size }`.
 2. It accepts either `b64_json` or `url` responses; a URL is downloaded.
 3. The image is persisted through DSH's attachment service, so it can be viewed again and inspected by image-capable models.
-4. Requests use the Host's global `fetch`, so an already-configured DSH outbound proxy applies automatically.
+4. When a save directory is configured, a second copy with a real extension is written there and its absolute path is returned.
+5. Requests use the Host's global `fetch`, so an already-configured DSH outbound proxy applies automatically.
 
 ## What it does not do
 
 - Only OpenAI-compatible `/images/generations`; no image editing, image-to-image, `n>1`, or `quality` parameters.
 - No automatic generation; a request is sent only when the model calls the tool.
-- It stores nothing but the generated image attachment.
+- By default it stores only the attachment; a second copy is written only when a save directory is configured.
 
 ## Compatibility
 

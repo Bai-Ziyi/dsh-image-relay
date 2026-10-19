@@ -1,3 +1,7 @@
+import { promises as fs } from 'node:fs';
+import path from 'node:path';
+import os from 'node:os';
+import { randomBytes } from 'node:crypto';
 import z from '@deepseek-ai/schemastery';
 
 /** Cordis plugin name; also the row id's owner in the profile patch. */
@@ -16,6 +20,7 @@ export const Config = z.object({
   model: z.string().default('').volatile(),
   size: z.string().default('1024x1024').volatile(),
   timeoutMs: z.number().default(180000).volatile(),
+  outputDir: z.string().default('').volatile(),
 });
 
 /** Build an absolute endpoint from an OpenAI-compatible base URL. */
@@ -45,6 +50,39 @@ function requestSignal(caller, timeoutMs) {
   if (signals.length === 0) return undefined;
   if (signals.length === 1) return signals[0];
   return typeof AbortSignal.any === 'function' ? AbortSignal.any(signals) : signals[0];
+}
+
+/** Expand the current user's `~` forms without touching other users' paths. */
+function expandHome(value) {
+  if (value === '~') return os.homedir();
+  if (value.startsWith('~/') || value.startsWith('~\\')) return path.join(os.homedir(), value.slice(2));
+  return value;
+}
+
+/** The current session workspace, falling back to the Host's working directory. */
+async function sessionCwd(ctx, exec) {
+  const workingDirectory = ctx.get('workingDirectory');
+  if (workingDirectory !== undefined && typeof workingDirectory.ensure === 'function' && exec.agent !== undefined) {
+    try {
+      const cwd = await workingDirectory.ensure(exec.agent, exec.signal);
+      if (typeof cwd === 'string' && cwd !== '') return cwd;
+    } catch {
+      // Fall through to the Host directory when the session has no workspace.
+    }
+  }
+  return process.cwd();
+}
+
+/** Resolve the optional copy destination; relative paths follow the session workspace. */
+async function resolveOutputDir(ctx, exec, raw) {
+  const expanded = expandHome(raw);
+  if (path.isAbsolute(expanded)) return path.resolve(expanded);
+  return path.resolve(await sessionCwd(ctx, exec), expanded);
+}
+
+/** Append a diagnostic without replacing an earlier one. */
+function appendNote(note, message) {
+  return note === undefined ? message : `${note} ${message}`;
 }
 
 /**
@@ -87,6 +125,7 @@ export function apply(ctx, config) {
           url: { type: 'string' },
           revisedPrompt: { type: 'string' },
           note: { type: 'string' },
+          savedPath: { type: 'string' },
           image: {
             type: 'object',
             additionalProperties: false,
@@ -105,6 +144,7 @@ export function apply(ctx, config) {
       render: (_args, value) => {
         const lines = [`Generated ${value.model} image at ${value.size}.`];
         if (value.url !== undefined) lines.push(`URL: ${value.url}`);
+        if (value.savedPath !== undefined) lines.push(`Saved copy: ${value.savedPath}`);
         if (value.note !== undefined) lines.push(value.note);
         if (value.image !== undefined) {
           lines.push(`Attached: ${value.image.mediaType}, ${value.image.width}x${value.image.height} px, ${value.image.bytes} bytes.`);
@@ -189,7 +229,22 @@ export function apply(ctx, config) {
       } else {
         note = 'No attachment store is mounted; the image is available through the URL below.';
       }
-      if (image === undefined && remoteURL === undefined) throw new Error(note ?? 'image was generated but could not be stored');
+
+      let savedPath;
+      const outputDir = String(config.outputDir.get() ?? '').trim();
+      if (outputDir !== '') {
+        try {
+          const directory = await resolveOutputDir(ctx, exec, outputDir);
+          await fs.mkdir(directory, { recursive: true });
+          const target = path.join(directory, `generated-${Date.now()}-${randomBytes(3).toString('hex')}.${extensionFor(mediaType)}`);
+          await fs.writeFile(target, bytes);
+          savedPath = target;
+        } catch (error) {
+          note = appendNote(note, `The image was generated but could not be saved to "${outputDir}": ${error instanceof Error ? error.message : String(error)}`);
+        }
+      }
+
+      if (image === undefined && remoteURL === undefined && savedPath === undefined) throw new Error(note ?? 'image was generated but could not be stored');
 
       return {
         model,
@@ -197,6 +252,7 @@ export function apply(ctx, config) {
         ...(remoteURL === undefined ? {} : { url: remoteURL }),
         ...(typeof item.revised_prompt === 'string' ? { revisedPrompt: item.revised_prompt } : {}),
         ...(image === undefined ? {} : { image }),
+        ...(savedPath === undefined ? {} : { savedPath }),
         ...(note === undefined ? {} : { note }),
       };
     },
