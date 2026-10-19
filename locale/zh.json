@@ -1,0 +1,6 @@
+{
+  "meta": {
+    "title": "图片中转",
+    "description": "通过 OpenAI 兼容中转站，用文字提示词生成图片。"
+  }
+}

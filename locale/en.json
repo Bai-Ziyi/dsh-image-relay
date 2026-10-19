@@ -1,0 +1,6 @@
+{
+  "meta": {
+    "title": "Image Relay",
+    "description": "Generate images from a text prompt through an OpenAI-compatible relay."
+  }
+}
