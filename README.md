@@ -63,8 +63,8 @@ dsh plugin --profile desktop add github:Bai-Ziyi/dsh-image-relay
 
 ## 兼容性
 
-- DSH `0.2.x`；在 `0.2.1-rc.2` 上测试过。
-- 依赖 `@deepseek-ai/schemastery`（版本与 DSH `0.2.1-rc.2` 内置一致）。工具注册使用 Host 的 `ctx.tools`，不额外依赖 `dsh-tools`。
+- DSH `0.2.x`；在 `0.2.1-rc.3` 上测试过。
+- 依赖 `@deepseek-ai/schemastery`（版本与 DSH `0.2.1-rc.3` 内置一致）。工具注册使用 Host 的 `ctx.tools`，不额外依赖 `dsh-tools`。
 - 客户端半侧注册到 `plugins.row.config`，需要同版本 DSH 的「插件」页。
 
 ## 开发
