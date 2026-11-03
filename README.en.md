@@ -63,8 +63,8 @@ The generated image is attached to the conversation; when the relay returns a UR
 
 ## Compatibility
 
-- DSH `0.2.x`; tested on `0.2.1-rc.3`.
-- Depends on `@deepseek-ai/schemastery` at the version bundled with DSH `0.2.1-rc.3`. Tool registration uses the Host's `ctx.tools`, so it does not need `dsh-tools` as an extra dependency.
+- DSH `0.2.x`; tested on `0.2.1-rc.5`.
+- Depends on `@deepseek-ai/schemastery` at the version bundled with DSH `0.2.1-rc.5`. Tool registration uses the Host's `ctx.tools`, so it does not need `dsh-tools` as an extra dependency.
 - The client half registers into `plugins.row.config`, which requires the Plugins page from the same DSH version.
 
 ## Development
